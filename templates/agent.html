@@ -1,0 +1,27 @@
+{% set title = "IA agentica" %}
+{% extends "base.html" %}
+{% block content %}
+  <div class="card">
+    <div class="card-title">Misión autónoma</div>
+    <div class="muted">Le das una misión y la IA decide qué herramienta usar (SaaS o RAG) hasta entregar un informe.</div>
+    <form method="post" action="{{ url_for('agent_run') }}" class="stack">
+      <label>
+        Misión
+        <textarea name="mission" rows="4" placeholder="Genera un informe del club con KPIs, cuotas pendientes y consejos de jab">{{ mission or '' }}</textarea>
+      </label>
+      <button type="submit">Ejecutar misión</button>
+    </form>
+  </div>
+
+  {% if run_error %}
+    <div class="alert error">{{ run_error }}</div>
+  {% endif %}
+
+  {% if report %}
+    <div class="card">
+      <div class="card-title">Informe final</div>
+      <div class="answer">{{ report }}</div>
+    </div>
+  {% endif %}
+{% endblock %}
+

@@ -1,0 +1,56 @@
+{% set title = "Editar boxeador" %}
+{% extends "base.html" %}
+{% block content %}
+  <div class="card">
+    <div class="card-title">{{ boxer.name }}</div>
+    <form method="post" action="{{ url_for('boxer_save', boxer_id=boxer.id) }}" class="stack">
+      <div class="grid2">
+        <label>
+          Nombre
+          <input name="name" value="{{ boxer.name }}" required />
+        </label>
+        <label>
+          Apodo
+          <input name="nickname" value="{{ boxer.nickname or '' }}" />
+        </label>
+      </div>
+      <div class="grid3">
+        <label>
+          Categoría
+          <input name="weight_class" value="{{ boxer.weight_class or '' }}" />
+        </label>
+        <label>
+          Guardia
+          <input name="stance" value="{{ boxer.stance or '' }}" />
+        </label>
+        <label>
+          Ciudad
+          <input name="city" value="{{ boxer.city or '' }}" />
+        </label>
+      </div>
+      <div class="grid3">
+        <label>
+          Victorias
+          <input name="wins" type="number" min="0" value="{{ boxer.wins }}" />
+        </label>
+        <label>
+          Derrotas
+          <input name="losses" type="number" min="0" value="{{ boxer.losses }}" />
+        </label>
+        <label>
+          Empates
+          <input name="draws" type="number" min="0" value="{{ boxer.draws }}" />
+        </label>
+      </div>
+      <label>
+        Notas
+        <textarea name="notes" rows="4">{{ boxer.notes or '' }}</textarea>
+      </label>
+      <div class="actions">
+        <button type="submit">Guardar cambios</button>
+        <a class="btn ghost" href="{{ url_for('boxers') }}">Volver</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+

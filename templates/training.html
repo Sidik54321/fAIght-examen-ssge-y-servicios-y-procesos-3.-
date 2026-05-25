@@ -1,0 +1,87 @@
+{% set title = "Entrenamiento" %}
+{% extends "base.html" %}
+{% block content %}
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Pares Q/A (JSON)</div>
+      <div class="muted small">Estos pares se exportan a <code>training_data.json</code> y se usan para crear el modelo tuned en Ollama.</div>
+      <form method="post" action="{{ url_for('training_add_pair') }}" class="stack">
+        <label>
+          Pregunta
+          <textarea name="question" rows="3" placeholder="Ej: Convierte esta intención en JSON..."></textarea>
+        </label>
+        <label>
+          Respuesta
+          <textarea name="answer" rows="3" placeholder="Ej: {\"action\":\"...\",\"params\":{...}}"></textarea>
+        </label>
+        <button type="submit">Añadir par</button>
+      </form>
+      <div class="actions">
+        <form method="post" action="{{ url_for('training_export') }}" class="inline">
+          <button class="ghost" type="submit">Exportar a training_data.json</button>
+        </form>
+        <form method="post" action="{{ url_for('training_run') }}" class="inline">
+          <button type="submit">Crear/actualizar modelo (ollama create)</button>
+        </form>
+      </div>
+      {% if train_output %}
+        <div class="card-subtitle">Salida de entrenamiento</div>
+        <pre>{{ train_output }}</pre>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-title">Comparador before/after</div>
+      <div class="muted small">Compara <code>{{ chat_model }}</code> vs <code>{{ tuned_model }}</code>.</div>
+      <form method="post" action="{{ url_for('training_compare') }}" class="stack">
+        <label>
+          Prompt
+          <textarea name="prompt" rows="4" placeholder="Explica el jab y un error común">{{ compare_prompt or '' }}</textarea>
+        </label>
+        <button type="submit">Comparar</button>
+      </form>
+      {% if compare_error %}
+        <div class="alert error">{{ compare_error }}</div>
+      {% endif %}
+      {% if compare_before or compare_after %}
+        <div class="grid2">
+          <div>
+            <div class="card-subtitle">Antes (base)</div>
+            <pre>{{ compare_before }}</pre>
+          </div>
+          <div>
+            <div class="card-subtitle">Después (tuned)</div>
+            <pre>{{ compare_after }}</pre>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Lista de pares</div>
+    {% if pairs and pairs|length > 0 %}
+      <div class="table">
+        <div class="tr th">
+          <div>Pregunta</div>
+          <div>Respuesta</div>
+          <div></div>
+        </div>
+        {% for p in pairs %}
+          <div class="tr">
+            <div class="mono small">{{ p.question }}</div>
+            <div class="mono small">{{ p.answer }}</div>
+            <div class="right">
+              <form method="post" action="{{ url_for('training_delete_pair', pair_id=p.id) }}" class="inline">
+                <button class="danger ghost" type="submit">Borrar</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted">No hay pares todavía.</div>
+    {% endif %}
+  </div>
+{% endblock %}
+

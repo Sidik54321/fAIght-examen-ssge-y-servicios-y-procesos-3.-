@@ -1,0 +1,193 @@
+{% set title = "Ring 3D" %}
+{% extends "base.html" %}
+{% block content %}
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Combate generado por estadísticas</div>
+      <div class="muted">Selecciona dos boxeadores y fAIght simula el combate. Los iconos representan a cada rival.</div>
+      <div class="grid2">
+        <label>
+          Esquina A
+          <select id="fighterA"></select>
+        </label>
+        <label>
+          Esquina B
+          <select id="fighterB"></select>
+        </label>
+      </div>
+      <div class="grid2">
+        <div class="card mini">
+          <div class="card-title">A</div>
+          <div id="statsA" class="mono small muted"></div>
+        </div>
+        <div class="card mini">
+          <div class="card-title">B</div>
+          <div id="statsB" class="mono small muted"></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnFight" type="button">Simular combate</button>
+        <button id="btnReset" class="ghost" type="button">Reset</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Resultado</div>
+      <div id="fightHeadline" class="strong">Listo para pelear</div>
+      <div id="fightMeta" class="muted small"></div>
+      <pre id="fightLog" class="mono small"></pre>
+    </div>
+  </div>
+
+  <section class="ring-stage">
+    <div class="ring3d" id="ring">
+      <div class="ring-floor"></div>
+      <div class="ring-rope rope1"></div>
+      <div class="ring-rope rope2"></div>
+      <div class="ring-rope rope3"></div>
+
+      <div class="fighter left" id="iconA" aria-label="Fighter A">
+        <svg viewBox="0 0 64 64" width="54" height="54" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="32" cy="14" r="8"></circle>
+          <path d="M20 56v-9c0-8 5-14 12-14s12 6 12 14v9"></path>
+          <path d="M24 31l-8 8"></path>
+          <path d="M40 31l8 8"></path>
+          <path d="M26 44l-10 6"></path>
+          <path d="M38 44l10 6"></path>
+        </svg>
+      </div>
+
+      <div class="fighter right" id="iconB" aria-label="Fighter B">
+        <svg viewBox="0 0 64 64" width="54" height="54" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="32" cy="14" r="8"></circle>
+          <path d="M20 56v-9c0-8 5-14 12-14s12 6 12 14v9"></path>
+          <path d="M24 31l-8 8"></path>
+          <path d="M40 31l8 8"></path>
+          <path d="M26 44l-10 6"></path>
+          <path d="M38 44l10 6"></path>
+        </svg>
+      </div>
+
+      <div class="ring-label" id="ringLabel">fAIght</div>
+    </div>
+  </section>
+
+  <script>
+    const fighterA = document.getElementById("fighterA");
+    const fighterB = document.getElementById("fighterB");
+    const statsA = document.getElementById("statsA");
+    const statsB = document.getElementById("statsB");
+    const btnFight = document.getElementById("btnFight");
+    const btnReset = document.getElementById("btnReset");
+    const fightHeadline = document.getElementById("fightHeadline");
+    const fightMeta = document.getElementById("fightMeta");
+    const fightLog = document.getElementById("fightLog");
+    const ring = document.getElementById("ring");
+    const iconA = document.getElementById("iconA");
+    const iconB = document.getElementById("iconB");
+    const ringLabel = document.getElementById("ringLabel");
+
+    let boxers = [];
+
+    function recordStr(b) {
+      return `${b.wins}-${b.losses}-${b.draws}`;
+    }
+
+    function boxerLine(b) {
+      const nick = b.nickname ? ` "${b.nickname}"` : "";
+      const wc = b.weight_class ? ` · ${b.weight_class}` : "";
+      const st = b.stance ? ` · ${b.stance}` : "";
+      return `${b.name}${nick}${wc}${st} · ${recordStr(b)}`;
+    }
+
+    function fillSelect(select, items) {
+      select.innerHTML = "";
+      for (const b of items) {
+        const opt = document.createElement("option");
+        opt.value = b.id;
+        opt.textContent = boxerLine(b);
+        select.appendChild(opt);
+      }
+    }
+
+    function selectedBoxer(select) {
+      const id = parseInt(select.value || "0", 10);
+      return boxers.find((b) => b.id === id) || null;
+    }
+
+    function renderStats() {
+      const a = selectedBoxer(fighterA);
+      const b = selectedBoxer(fighterB);
+      statsA.textContent = a ? boxerLine(a) : "-";
+      statsB.textContent = b ? boxerLine(b) : "-";
+      ringLabel.textContent = a && b ? `${a.name} vs ${b.name}` : "fAIght";
+    }
+
+    async function loadBoxers() {
+      const res = await fetch("/api/boxers");
+      const data = await res.json();
+      boxers = data.boxers || [];
+      fillSelect(fighterA, boxers);
+      fillSelect(fighterB, boxers);
+      if (boxers.length >= 2) {
+        fighterA.value = String(boxers[0].id);
+        fighterB.value = String(boxers[1].id);
+      }
+      renderStats();
+    }
+
+    function setWinnerUI(winnerId) {
+      iconA.classList.toggle("winner", selectedBoxer(fighterA)?.id === winnerId);
+      iconB.classList.toggle("winner", selectedBoxer(fighterB)?.id === winnerId);
+    }
+
+    function resetUI() {
+      ring.classList.remove("fight");
+      iconA.classList.remove("winner");
+      iconB.classList.remove("winner");
+      fightHeadline.textContent = "Listo para pelear";
+      fightMeta.textContent = "";
+      fightLog.textContent = "";
+      ringLabel.textContent = "fAIght";
+      renderStats();
+    }
+
+    async function runFight() {
+      const a = selectedBoxer(fighterA);
+      const b = selectedBoxer(fighterB);
+      if (!a || !b) return;
+      if (a.id === b.id) {
+        fightHeadline.textContent = "Elige dos boxeadores distintos";
+        return;
+      }
+      fightHeadline.textContent = "Simulando...";
+      fightMeta.textContent = "";
+      fightLog.textContent = "";
+      ring.classList.remove("fight");
+      void ring.offsetWidth;
+      ring.classList.add("fight");
+
+      const res = await fetch("/api/fight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ boxer_a_id: a.id, boxer_b_id: b.id }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        fightHeadline.textContent = data.error;
+        return;
+      }
+      fightHeadline.textContent = data.headline || "Combate finalizado";
+      fightMeta.textContent = data.meta || "";
+      fightLog.textContent = (data.log || []).join("\n");
+      setWinnerUI(data.winner_id);
+    }
+
+    fighterA.addEventListener("change", renderStats);
+    fighterB.addEventListener("change", renderStats);
+    btnFight.addEventListener("click", runFight);
+    btnReset.addEventListener("click", resetUI);
+
+    loadBoxers();
+  </script>
+{% endblock %}

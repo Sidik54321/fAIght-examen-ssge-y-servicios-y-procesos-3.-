@@ -1,0 +1,78 @@
+{% set title = "Dashboard" %}
+{% extends "base.html" %}
+{% block content %}
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Club</div>
+      <div class="kpi">
+        <div class="kpi-value">{{ boxer_count }}</div>
+        <div class="muted">boxeadores registrados</div>
+      </div>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('boxers') }}">Gestionar boxeadores</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Ingresos</div>
+      <div class="kpi-row">
+        <div class="kpi">
+          <div class="kpi-value">{{ kpi.total_invoiced_eur or 0 }}</div>
+          <div class="muted">total (EUR)</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-value">{{ kpi.pending_eur or 0 }}</div>
+          <div class="muted">pendiente (EUR)</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('mcp_page') }}">Preguntar con MCP</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Cuotas pendientes</div>
+    {% if pending_invoices and pending_invoices|length > 0 %}
+      <div class="table">
+        <div class="tr th">
+          <div>ID</div>
+          <div>Socio</div>
+          <div>Fecha</div>
+          <div>Importe</div>
+          <div>Estado</div>
+        </div>
+        {% for inv in pending_invoices %}
+          <div class="tr">
+            <div>{{ inv.id }}</div>
+            <div>{{ inv.customer_id }}</div>
+            <div>{{ inv.date }}</div>
+            <div>{{ inv.total_eur }}</div>
+            <div class="pill warn">{{ inv.status }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="muted">No hay cuotas pendientes en el dataset de demo.</div>
+    {% endif %}
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">RAG</div>
+      <div class="muted">Entrena tu base de conocimiento con apuntes de boxeo y consulta por similitud.</div>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('rag_page') }}">Abrir RAG</a>
+        <a class="btn ghost" href="{{ url_for('css3d') }}">Ring 3D</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Entrenamiento IA</div>
+      <div class="muted">Gestiona pares Q/A en JSON, exporta y crea un modelo derivado en Ollama.</div>
+      <div class="actions">
+        <a class="btn" href="{{ url_for('training_page') }}">Abrir entrenamiento</a>
+        <a class="btn ghost" href="{{ url_for('agent_page') }}">IA agentica</a>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+

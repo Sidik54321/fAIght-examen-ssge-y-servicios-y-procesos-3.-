@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{ title or "fAIght" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+
+<body class="app">
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-name">fAIght</div>
+                <div class="brand-sub muted">Boxeo · IA · RAG · Entrenamiento</div>
+            </div>
+            <nav class="nav">
+                <a class="{{ 'active' if active=='dashboard' else '' }}" href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a class="{{ 'active' if active=='boxers' else '' }}" href="{{ url_for('boxers') }}">Boxeadores</a>
+                <a class="{{ 'active' if active=='coach' else '' }}" href="{{ url_for('coach_page') }}">Coach IA</a>
+                <a class="{{ 'active' if active=='mcp' else '' }}" href="{{ url_for('mcp_page') }}">MCP</a>
+                <a class="{{ 'active' if active=='rag' else '' }}" href="{{ url_for('rag_page') }}">RAG</a>
+                <a class="{{ 'active' if active=='training' else '' }}" href="{{ url_for('training_page') }}">Entrenamiento</a>
+                <a class="{{ 'active' if active=='agent' else '' }}" href="{{ url_for('agent_page') }}">IA agentica</a>
+                <a class="{{ 'active' if active=='css3d' else '' }}" href="{{ url_for('css3d') }}">Ring 3D</a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-row">
+                    <div class="user-name">{{ user.username }}</div>
+                    <div class="muted small">sesión activa</div>
+                </div>
+                <form method="post" action="{{ url_for('logout') }}">
+                    <button class="ghost" type="submit">Cerrar sesión</button>
+                </form>
+            </div>
+        </aside>
+        <main class="content">
+            <header class="topbar">
+                <div class="topbar-title">{{ title or "" }}</div>
+                <div class="topbar-meta muted small">
+                    chat={{ chat_model }}, embed={{ embed_model }}, tuned={{ tuned_model }}
+                </div>
+            </header>
+            <section class="page">
+                {% block content %}{% endblock %}
+            </section>
+        </main>
+    </div>
+</body>
+
+</html>

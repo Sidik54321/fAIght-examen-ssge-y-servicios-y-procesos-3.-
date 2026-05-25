@@ -1,0 +1,45 @@
+{% set title = "MCP" %}
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-title">Pregunta humana → JSON → SaaS → respuesta</div>
+    <div class="muted">Ejemplos: “Dame las cuotas pendientes”, “Ranking de servicios”, “Lista boxeadores/socios”.</div>
+    <form method="post" action="{{ url_for('mcp_page_post') }}" class="stack">
+        <label>
+            Pregunta
+            <input name="question" value="{{ question or '' }}" placeholder="Dame las cuotas pendientes" />
+        </label>
+        <button type="submit">Ejecutar</button>
+    </form>
+</div>
+
+{% if result %}
+<div class="grid2">
+    <div class="card">
+        <div class="card-title">Petición JSON</div>
+        {% if result.error %}
+        <div class="alert error">{{ result.error }}</div>
+        {% else %}
+        <pre>{{ result.tool_call | tojson(indent=2) }}</pre>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="card-title">Respuesta del SaaS</div>
+        {% if result.saas %}
+        <pre>{{ result.saas | tojson(indent=2) }}</pre>
+        {% else %}
+        <div class="muted">Sin datos.</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">Interpretación IA</div>
+    {% if result.answer %}
+    <div class="answer">{{ result.answer }}</div>
+    {% else %}
+    <div class="muted">Sin respuesta.</div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

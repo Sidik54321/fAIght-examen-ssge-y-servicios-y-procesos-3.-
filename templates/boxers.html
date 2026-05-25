@@ -1,0 +1,293 @@
+{% set title = "Boxeadores" %}
+{% extends "base.html" %}
+{% block content %}
+<div class="grid2">
+    <div class="card">
+        <div class="card-title">Añadir boxeador</div>
+        <div id="boxerNotice" class="alert ok" style="display:none;"></div>
+        <div id="boxerError" class="alert error" style="display:none;"></div>
+        <form id="boxerForm" method="post" action="{{ url_for('boxers_add') }}" class="stack">
+            <div class="grid2">
+                <label>
+                    Nombre
+                    <input name="name" required />
+                </label>
+                <label>
+                    Apodo
+                    <input name="nickname" placeholder="El Zurdo" />
+                </label>
+            </div>
+            <div class="grid3">
+                <label>
+                    Categoría
+                    <input name="weight_class" placeholder="Welter" />
+                </label>
+                <label>
+                    Guardia
+                    <input name="stance" placeholder="Diestra / Zurdo" />
+                </label>
+                <label>
+                    Ciudad
+                    <input name="city" placeholder="Madrid" />
+                </label>
+            </div>
+            <div class="grid3">
+                <label>
+                    Victorias
+                    <input name="wins" type="number" min="0" value="0" />
+                </label>
+                <label>
+                    Derrotas
+                    <input name="losses" type="number" min="0" value="0" />
+                </label>
+                <label>
+                    Empates
+                    <input name="draws" type="number" min="0" value="0" />
+                </label>
+            </div>
+            <label>
+                Notas
+                <textarea name="notes" rows="3" placeholder="Estilo, objetivos, puntos a mejorar..."></textarea>
+            </label>
+            <div class="actions">
+                <button type="submit">Guardar</button>
+                <button id="btnClear" class="ghost" type="button">Limpiar</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Lista</div>
+        <div class="grid2">
+            <label>
+                Buscar
+                <input id="searchBox" placeholder="Nombre, apodo, ciudad..." />
+            </label>
+            <label>
+                Filtros
+                <div class="grid2">
+                    <select id="filterStance">
+                        <option value="">Guardia (todas)</option>
+                        <option value="diestra">Diestra</option>
+                        <option value="zurdo">Zurdo</option>
+                    </select>
+                    <select id="filterClass">
+                        <option value="">Categoría (todas)</option>
+                    </select>
+                </div>
+            </label>
+        </div>
+        <div class="muted small" id="boxerSummary"></div>
+        <div class="table" id="boxerList" aria-live="polite">
+            {% if boxers and boxers|length > 0 %}
+            <div class="tr th">
+                <div>Nombre</div>
+                <div>Categoría</div>
+                <div>Guardia</div>
+                <div>Récord</div>
+                <div></div>
+            </div>
+            {% for b in boxers %}
+            <div class="tr">
+                <div>
+                    <div class="strong">{{ b.name }}</div>
+                    <div class="muted small">{{ b.nickname or "" }} · {{ b.city or "" }}</div>
+                </div>
+                <div>{{ b.weight_class or "-" }}</div>
+                <div>{{ b.stance or "-" }}</div>
+                <div>{{ b.wins }}-{{ b.losses }}-{{ b.draws }}</div>
+                <div class="right">
+                    <a class="btn ghost" href="{{ url_for('boxer_edit', boxer_id=b.id) }}">Editar</a>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById("boxerForm");
+    const btnClear = document.getElementById("btnClear");
+    const notice = document.getElementById("boxerNotice");
+    const errorBox = document.getElementById("boxerError");
+    const listEl = document.getElementById("boxerList");
+    const searchBox = document.getElementById("searchBox");
+    const filterStance = document.getElementById("filterStance");
+    const filterClass = document.getElementById("filterClass");
+    const summaryEl = document.getElementById("boxerSummary");
+
+    let allBoxers = [];
+
+    function showNotice(msg) {
+        notice.textContent = msg;
+        notice.style.display = "block";
+        errorBox.style.display = "none";
+        setTimeout(() => {
+            notice.style.display = "none";
+        }, 2400);
+    }
+
+    function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.style.display = "block";
+        notice.style.display = "none";
+    }
+
+    function normalize(s) {
+        return (s || "").toString().trim().toLowerCase();
+    }
+
+    function recordStr(b) {
+        return `${b.wins}-${b.losses}-${b.draws}`;
+    }
+
+    function matchesFilters(b) {
+        const q = normalize(searchBox.value);
+        const stance = normalize(filterStance.value);
+        const wc = normalize(filterClass.value);
+        const hay = normalize([b.name, b.nickname, b.city, b.weight_class, b.stance].filter(Boolean).join(" "));
+        if (q && !hay.includes(q)) return false;
+        if (stance && normalize(b.stance).includes(stance) === false) return false;
+        if (wc && normalize(b.weight_class) !== wc) return false;
+        return true;
+    }
+
+    function render() {
+        const filtered = allBoxers.filter(matchesFilters);
+        summaryEl.textContent = `Mostrando ${filtered.length} de ${allBoxers.length}`;
+
+        const header = `
+        <div class="tr th">
+          <div>Nombre</div>
+          <div>Categoría</div>
+          <div>Guardia</div>
+          <div>Récord</div>
+          <div></div>
+        </div>`;
+
+        const rows = filtered.map((b) => {
+            const nick = b.nickname ? b.nickname : "";
+            const city = b.city ? b.city : "";
+            const wc = b.weight_class ? b.weight_class : "-";
+            const st = b.stance ? b.stance : "-";
+            return `
+          <div class="tr row-hover" data-id="${b.id}">
+            <div>
+              <div class="strong">${escapeHtml(b.name)}</div>
+              <div class="muted small">${escapeHtml(nick)} · ${escapeHtml(city)}</div>
+            </div>
+            <div>${escapeHtml(wc)}</div>
+            <div>${escapeHtml(st)}</div>
+            <div class="mono">${escapeHtml(recordStr(b))}</div>
+            <div class="right">
+              <a class="btn ghost" href="/boxers/${b.id}">Editar</a>
+              <button class="btn ghost btn-del" type="button" data-id="${b.id}">Borrar</button>
+            </div>
+          </div>`;
+        }).join("");
+
+        listEl.innerHTML = header + rows;
+    }
+
+    function escapeHtml(str) {
+        return (str || "").toString()
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function fillClassFilter(items) {
+        const current = filterClass.value;
+        const set = new Set();
+        for (const b of items) {
+            const wc = normalize(b.weight_class);
+            if (wc) set.add(wc);
+        }
+        const classes = Array.from(set).sort();
+        filterClass.innerHTML = `<option value="">Categoría (todas)</option>` + classes.map((c) => `<option value="${c}">${c}</option>`).join("");
+        if (classes.includes(current)) filterClass.value = current;
+    }
+
+    async function refresh() {
+        const res = await fetch("/api/boxers");
+        const data = await res.json();
+        allBoxers = data.boxers || [];
+        fillClassFilter(allBoxers);
+        render();
+    }
+
+    async function createBoxer(payload) {
+        const res = await fetch("/api/boxers", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || "Error creando boxeador");
+        }
+        return data.boxer;
+    }
+
+    async function deleteBoxer(id) {
+        const res = await fetch(`/api/boxers/${id}`, {
+            method: "DELETE"
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || "Error borrando");
+        }
+        return true;
+    }
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const payload = Object.fromEntries(fd.entries());
+        payload.wins = parseInt(payload.wins || "0", 10);
+        payload.losses = parseInt(payload.losses || "0", 10);
+        payload.draws = parseInt(payload.draws || "0", 10);
+        try {
+            const created = await createBoxer(payload);
+            showNotice(`Añadido: ${created.name}`);
+            form.reset();
+            await refresh();
+            searchBox.value = "";
+            render();
+        } catch (err) {
+            showError(err.message || String(err));
+        }
+    });
+
+    btnClear.addEventListener("click", () => {
+        form.reset();
+        notice.style.display = "none";
+        errorBox.style.display = "none";
+    });
+
+    listEl.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".btn-del");
+        if (!btn) return;
+        const id = parseInt(btn.dataset.id || "0", 10);
+        if (!id) return;
+        try {
+            await deleteBoxer(id);
+            showNotice("Boxeador borrado");
+            await refresh();
+        } catch (err) {
+            showError(err.message || String(err));
+        }
+    });
+
+    searchBox.addEventListener("input", () => render());
+    filterStance.addEventListener("change", () => render());
+    filterClass.addEventListener("change", () => render());
+
+    refresh();
+</script>
+{% endblock %}

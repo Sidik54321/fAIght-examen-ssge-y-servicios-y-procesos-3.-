@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Login · fAIght</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+
+<body class="auth">
+    <main class="auth-card">
+        <h1>fAIght</h1>
+        <p class="muted">Inicia sesión para acceder al panel.</p>
+        <p class="muted small">Demo: usuario <code>admin</code> / contraseña <code>admin123</code></p>
+        {% if error %}
+        <div class="alert error">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="{{ url_for('login_post') }}" class="stack">
+            <input type="hidden" name="next" value="{{ next or '/' }}" />
+            <label>
+                Usuario
+                <input name="username" autocomplete="username" required />
+            </label>
+            <label>
+                Contraseña
+                <input name="password" type="password" autocomplete="current-password" required />
+            </label>
+            <button type="submit">Entrar</button>
+        </form>
+        <div class="actions">
+            <a class="btn ghost" href="{{ url_for('register', next=next) }}">Crear usuario</a>
+        </div>
+    </main>
+</body>
+
+</html>

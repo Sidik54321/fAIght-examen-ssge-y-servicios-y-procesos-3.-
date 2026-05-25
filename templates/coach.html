@@ -1,0 +1,33 @@
+{% set title = "Coach IA" %}
+{% extends "base.html" %}
+{% block content %}
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Pregúntale a fAIght</div>
+      <div class="muted">Conocimiento general de boxeo: técnica, combinaciones, defensa, pies y errores comunes.</div>
+      <form method="post" action="{{ url_for('coach_post') }}" class="stack">
+        <label>
+          Pregunta
+          <textarea name="prompt" rows="4" placeholder="Ej: ¿Cómo mejorar mi jab? ¿Qué errores comunes hay en el 1-2?">{{ prompt or '' }}</textarea>
+        </label>
+        <button type="submit">Responder</button>
+      </form>
+      {% if model_used %}
+        <div class="muted small">Modelo usado: <code>{{ model_used }}</code></div>
+      {% endif %}
+      {% if coach_error %}
+        <div class="alert error">{{ coach_error }}</div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-title">Respuesta</div>
+      {% if answer %}
+        <div class="answer">{{ answer }}</div>
+      {% else %}
+        <div class="muted">Escribe una pregunta para obtener una respuesta.</div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}
+

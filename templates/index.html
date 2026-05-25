@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>BoxGym IA (MCP + RAG + Ollama)</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+
+<body>
+    <header class="container">
+        <h1>BoxGym IA: MCP + RAG + Ollama</h1>
+        <p class="muted">
+            Modelos por defecto: chat = <code>qwen2.5:3b-instruct</code>, embeddings = <code>nomic-embed-text</code>.
+            Configurable con <code>OLLAMA_CHAT_MODEL</code> y <code>OLLAMA_EMBED_MODEL</code>.
+        </p>
+        <p class="muted">
+            Justificación rápida: 3B suele ir rápido en CPU y consume menos memoria que 8B/14B; mantiene buena calidad para
+            español y tareas de “traducción a JSON” (MCP). Embeddings con <code>nomic-embed-text</code> ofrece vectores estables
+            para buscar teoría/técnica de boxeo en local (RAG).
+        </p>
+        <nav>
+            <a href="{{ url_for('css3d') }}">Ring 3D (IA + RAG)</a>
+        </nav>
+    </header>
+
+    <main class="container grid">
+        <section class="card">
+            <h2>MCP (IA → petición → SaaS → IA)</h2>
+            <p class="muted">Caso: gestión de un club/gimnasio de boxeo. La IA convierte tu pregunta en JSON, ejecuta el servicio y luego interpreta el resultado.</p>
+            <form method="post" action="{{ url_for('mcp_form') }}" class="stack">
+                <label>
+                    Pregunta humana
+                    <input name="question" placeholder="Ej: Dame las cuotas pendientes" value="{{ mcp_question or '' }}" />
+                </label>
+                <button type="submit">Ejecutar MCP</button>
+            </form>
+
+            {% if mcp_result %}
+            <div class="result">
+                {% if mcp_result.error %}
+                <div class="error">{{ mcp_result.error }}</div>
+                {% else %}
+                <h3>Petición JSON generada</h3>
+                <pre>{{ mcp_result.tool_call | tojson(indent=2) }}</pre>
+                <h3>Respuesta del SaaS</h3>
+                <pre>{{ mcp_result.saas | tojson(indent=2) }}</pre>
+                <h3>Interpretación IA</h3>
+                <div class="answer">{{ mcp_result.answer }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <h2>RAG (Embeddings + ChromaDB)</h2>
+            <p class="muted">Pega texto (técnica de boxeo, reglamento, apuntes). Se trocea en chunks, se generan embeddings con Ollama y se guarda en ChromaDB.</p>
+            <form method="post" action="{{ url_for('rag_ingest_form') }}" class="stack">
+                <label>
+                    Colección
+                    <input name="collection" value="{{ default_collection }}" />
+                </label>
+                <label>
+                    Fuente (opcional)
+                    <input name="source" placeholder="apuntes_tema1" />
+                </label>
+                <label>
+                    Texto a indexar
+                    <textarea name="text" rows="7" placeholder="Pega aquí tus apuntes de boxeo (guardia, jab, cross, defensa, combinaciones, etc.)..."></textarea>
+                </label>
+                <button type="submit">Ingestar en RAG</button>
+            </form>
+
+            {% if rag_ingest %}
+            <div class="result">
+                {% if rag_ingest.error %}
+                <div class="error">{{ rag_ingest.error }}</div>
+                {% else %}
+                <div class="ok">Chunks añadidos: {{ rag_ingest.added }} (colección: {{ rag_ingest.collection }})</div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <h2>RAG + IA (respuesta humana)</h2>
+            <p class="muted">La base vectorial devuelve chunks raw y la IA los convierte en una respuesta humana.</p>
+            <form method="post" action="{{ url_for('rag_ask_form') }}" class="stack">
+                <label>
+                    Colección
+                    <input name="collection" value="{{ default_collection }}" />
+                </label>
+                <label>
+                    Pregunta
+                    <input name="question" placeholder="Ej: ¿Cómo se hace un 1-2 (jab-cross)?" />
+                </label>
+                <button type="submit">Preguntar al RAG</button>
+            </form>
+
+            {% if rag_answer %}
+            <div class="result">
+                {% if rag_answer.error %}
+                <div class="error">{{ rag_answer.error }}</div>
+                {% else %}
+                <h3>Chunks más similares</h3>
+                <pre>{{ rag_answer.chunks | tojson(indent=2) }}</pre>
+                <h3>Respuesta final</h3>
+                <div class="answer">{{ rag_answer.answer }}</div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <h2>Acciones del MiniSaaS (para el MCP)</h2>
+            <pre>{{ actions | tojson(indent=2) }}</pre>
+        </section>
+    </main>
+</body>
+
+</html>

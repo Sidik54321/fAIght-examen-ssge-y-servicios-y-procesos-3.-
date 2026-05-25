@@ -1,0 +1,96 @@
+{% set title = "RAG" %}
+{% extends "base.html" %}
+{% block content %}
+<datalist id="collections">
+    {% for c in collections %}
+    <option value="{{ c }}"></option>
+    {% endfor %}
+</datalist>
+<div class="grid2">
+    <div class="card">
+        <div class="card-title">Ingestar texto (entrenar tu RAG)</div>
+        <form method="post" action="{{ url_for('rag_ingest_form') }}" class="stack">
+            <label>
+                Colección
+                <input name="collection" list="collections" value="{{ selected_collection or default_collection }}" />
+            </label>
+            <label>
+                Fuente
+                <input name="source" placeholder="apuntes_boxeo" />
+            </label>
+            <label>
+                Texto
+                <textarea name="text" rows="8" placeholder="Pega tus apuntes de boxeo: guardia, jab, cross, defensa..."></textarea>
+            </label>
+            <button type="submit">Ingestar</button>
+        </form>
+        {% if ingest %}
+        {% if ingest.error %}
+        <div class="alert error">{{ ingest.error }}</div>
+        {% else %}
+        <div class="alert ok">Chunks añadidos: {{ ingest.added }} · colección: {{ ingest.collection }}</div>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-title">Preguntar (RAG + IA)</div>
+        <form method="post" action="{{ url_for('rag_ask_form') }}" class="stack">
+            <label>
+                Colección
+                <input name="collection" list="collections" value="{{ selected_collection or default_collection }}" />
+            </label>
+            <label>
+                Pregunta
+                <textarea name="question" rows="3" placeholder="¿Cómo se ejecuta un 1-2 (jab-cross)?">{{ question or '' }}</textarea>
+            </label>
+            <button type="submit">Preguntar</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">Editar colección</div>
+    <form method="post" action="{{ url_for('rag_select_collection') }}" class="row">
+        <input name="collection" list="collections" value="{{ selected_collection or default_collection }}" placeholder="Nombre de colección" />
+        <button type="submit">Seleccionar</button>
+    </form>
+    <div class="muted">Seleccionada: <span class="mono">{{ selected_collection or default_collection }}</span> · chunks: {{ selected_count or 0 }}</div>
+    <div class="actions">
+        <form method="post" action="{{ url_for('rag_clear_collection') }}" class="inline">
+            <input type="hidden" name="collection" value="{{ selected_collection or default_collection }}" />
+            <button type="submit" class="danger">Vaciar colección</button>
+        </form>
+        <form method="post" action="{{ url_for('rag_delete_chunk') }}" class="inline">
+            <input type="hidden" name="collection" value="{{ selected_collection or default_collection }}" />
+            <input name="chunk_id" placeholder="ID de chunk" class="mono" />
+            <button type="submit" class="ghost">Borrar por ID</button>
+        </form>
+    </div>
+    {% if selected_preview %}
+    <div class="card-subtitle">Vista previa</div>
+    <pre>{{ selected_preview | tojson(indent=2) }}</pre>
+    {% else %}
+    <div class="muted">Sin chunks para mostrar.</div>
+    {% endif %}
+</div>
+
+{% if ask %}
+<div class="card">
+    <div class="card-title">Chunks más similares</div>
+    {% if ask.error %}
+    <div class="alert error">{{ ask.error }}</div>
+    {% else %}
+    <pre>{{ ask.chunks | tojson(indent=2) }}</pre>
+    {% endif %}
+</div>
+<div class="card">
+    <div class="card-title">Respuesta final</div>
+    {% if ask.answer %}
+    <div class="answer">{{ ask.answer }}</div>
+    {% else %}
+    <div class="muted">Sin respuesta.</div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

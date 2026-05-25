@@ -1,0 +1,118 @@
+[
+  {
+    "question": "Convierte esta intención en un JSON de petición: \"Dame las cuotas pendientes\".",
+    "answer": "{\"action\":\"search_invoices\",\"params\":{\"status\":\"pendiente\"}}"
+  },
+  {
+    "question": "Explica RAG con un ejemplo de boxeo en 2 frases.",
+    "answer": "RAG busca en una base vectorial los párrafos más relevantes (chunks) sobre tu pregunta y luego la IA redacta la respuesta usando esos chunks. Ejemplo: preguntas por el jab, el sistema recupera tus apuntes de técnica y la IA lo explica sin inventar."
+  },
+  {
+    "question": "Cuando el contexto no contiene la respuesta, ¿qué haces?",
+    "answer": "Digo que el contexto no contiene la información necesaria y pido o sugiero qué dato falta, sin inventar."
+  },
+  {
+    "question": "¿Qué es la guardia diestra (orthodox) y qué es la guardia zurda (southpaw)?",
+    "answer": "La guardia diestra (orthodox) lleva el pie izquierdo delante y la mano izquierda como jab; la guardia zurda (southpaw) invierte la posición (pie derecho delante) y suele usar el jab con la mano derecha."
+  },
+  {
+    "question": "Define jab, cross, gancho y uppercut en una frase cada uno.",
+    "answer": "Jab: golpe recto con la mano adelantada para medir y puntuar. Cross: recto potente con la mano atrasada. Gancho: golpe curvo lateral (a cabeza o cuerpo) con giro de cadera. Uppercut: golpe ascendente desde abajo, útil en corta distancia."
+  },
+  {
+    "question": "¿Qué es el 1-2 en boxeo y cuál es un error típico al hacerlo?",
+    "answer": "El 1-2 es la combinación jab-cross. Un error típico es quedarse plantado sin recuperar la guardia o lanzar el cross sin girar la cadera y el pie trasero, perdiendo potencia y equilibrio."
+  },
+  {
+    "question": "Explica slip, parry y bloqueo alto (high guard) de forma simple.",
+    "answer": "Slip: desviar la cabeza ligeramente fuera de la línea del golpe. Parry: desviar el golpe con un toque de la mano/antebrazo. Bloqueo alto: cubrirse con guantes y codos para absorber golpes, manteniendo la barbilla protegida."
+  },
+  {
+    "question": "¿Cómo se puntúa un asalto en boxeo amateur de forma general?",
+    "answer": "De forma general se valora el golpe limpio y efectivo, la iniciativa, el control del ring y la defensa; en profesional suele usarse 10-9 por asalto para el ganador, y en amateur se prioriza la calidad y cantidad de golpes claros según el reglamento local."
+  },
+  {
+    "question": "Dame 5 consejos de seguridad para entrenar boxeo.",
+    "answer": "Calienta y moviliza articulaciones, usa vendas y guantes adecuados, controla la intensidad en sparring, protege cabeza y dentadura cuando toque, y detente si hay mareo/dolor anormal; la técnica y la progresión pesan más que la fuerza bruta."
+  },
+  {
+    "question": "En fAIght, ¿para qué sirve el RAG?",
+    "answer": "Sirve para cargar apuntes o teoría de boxeo en una base vectorial y que la IA recupere los chunks relevantes antes de responder, mejorando precisión y evitando inventar."
+  },
+  {
+    "question": "Convierte esta intención en un JSON de petición: \"Dame las cuotas pagadas\".",
+    "answer": "{\"action\":\"search_invoices\",\"params\":{\"status\":\"pagada\"}}"
+  },
+  {
+    "question": "Convierte esta intención en un JSON de petición: \"Cuotas pendientes del socio C003\".",
+    "answer": "{\"action\":\"search_invoices\",\"params\":{\"status\":\"pendiente\",\"customer_id\":\"C003\"}}"
+  },
+  {
+    "question": "Convierte esta intención en un JSON de petición: \"Dame el KPI de ingresos y pendientes\".",
+    "answer": "{\"action\":\"kpi_sales\",\"params\":{}}"
+  },
+  {
+    "question": "Convierte esta intención en un JSON de petición: \"Ranking de servicios más vendidos\".",
+    "answer": "{\"action\":\"top_products\",\"params\":{\"limit\":5}}"
+  },
+  {
+    "question": "Convierte esta intención en un JSON de petición: \"Lista de socios/boxeadores\".",
+    "answer": "{\"action\":\"list_customers\",\"params\":{\"limit\":50}}"
+  },
+  {
+    "question": "Si el usuario pide “cuotas pendientes”, ¿qué acción y status usas?",
+    "answer": "Uso action = search_invoices y params.status = \"pendiente\"."
+  },
+  {
+    "question": "¿Qué valores válidos tiene el status de facturas/cuotas en el MiniSaaS?",
+    "answer": "Los valores válidos son \"pendiente\" y \"pagada\"."
+  },
+  {
+    "question": "Si la consulta search_invoices devuelve 0 resultados, ¿cómo respondes?",
+    "answer": "Digo que no se encontraron cuotas/facturas con esos filtros y sugiero revisar status o customer_id, sin inventar datos."
+  },
+  {
+    "question": "Si el usuario pide “todas las cuotas” sin filtrar, ¿qué JSON generas?",
+    "answer": "{\"action\":\"search_invoices\",\"params\":{}}"
+  },
+  {
+    "question": "Si te piden KPIs, ¿devuelves JSON o texto?",
+    "answer": "En el paso MCP devuelvo JSON válido para ejecutar kpi_sales; luego interpreto el resultado en español claro."
+  },
+  {
+    "question": "¿Qué haces si el modelo no está instalado en Ollama?",
+    "answer": "Devuelvo un error claro indicando que el modelo no existe y sugiero elegir uno instalado o instalarlo con ollama pull."
+  },
+  {
+    "question": "En una respuesta RAG, ¿puedes usar información que no esté en los chunks?",
+    "answer": "No. Solo uso los chunks recuperados; si no hay evidencia, lo digo y no invento."
+  },
+  {
+    "question": "¿Qué recomendación das si el RAG está vacío?",
+    "answer": "Indico que la colección no tiene datos y pido que ingesten apuntes antes de preguntar."
+  },
+  {
+    "question": "Escribe una respuesta breve a: \"Me duele la muñeca al hacer saco\".",
+    "answer": "Reduce intensidad, revisa técnica y alineación de muñeca, usa vendas/guantes adecuados y descansa; si el dolor persiste o hay inflamación, consulta a un profesional."
+  },
+  {
+    "question": "Dame un checklist de 4 puntos para un jab correcto.",
+    "answer": "Barbilla abajo y mano contraria protegiendo, extensión recta sin abrir el codo, pequeño paso/transferencia de peso para medir distancia, y regreso rápido a guardia."
+  },
+  {
+    "question": "Dame un consejo para no quedarte en la línea tras el 1-2.",
+    "answer": "Tras el cross, recupera guardia y sal con paso lateral o pivot, evitando quedarte estático delante del rival."
+  },
+  {
+    "question": "¿Qué significa “no telegrafiar” un golpe?",
+    "answer": "Significa no avisar con gestos previos (cargar el hombro, bajar la mano o tensarte) para que el rival no lo vea venir."
+  },
+  {
+    "question": "Dame una respuesta de 3 líneas a: \"¿Cómo mejoro la defensa?\".",
+    "answer": "Trabaja guardia alta, slips y parries en sombra y manoplas. Prioriza pies: entra y sal de ángulo, no solo mover la cabeza. Grábate y corrige errores básicos antes de subir intensidad."
+  },
+  {
+    "question": "Si el usuario pide “ranking de servicios”, ¿qué tool del SaaS usas y qué devuelve?",
+    "answer": "Uso top_products y devuelve una lista de productos/servicios con sus ventas en euros."
+  }
+]
