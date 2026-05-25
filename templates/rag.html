@@ -9,7 +9,7 @@
 <div class="grid2">
     <div class="card">
         <div class="card-title">Ingestar texto (entrenar tu RAG)</div>
-        <form method="post" action="{{ url_for('rag_ingest_form') }}" class="stack">
+        <form method="post" action="/rag/ingest" class="stack">
             <label>
                 Colección
                 <input name="collection" list="collections" value="{{ selected_collection or default_collection }}" />
@@ -35,7 +35,7 @@
 
     <div class="card">
         <div class="card-title">Preguntar (RAG + IA)</div>
-        <form method="post" action="{{ url_for('rag_ask_form') }}" class="stack">
+        <form method="post" action="/rag/ask" class="stack">
             <label>
                 Colección
                 <input name="collection" list="collections" value="{{ selected_collection or default_collection }}" />
@@ -51,17 +51,17 @@
 
 <div class="card">
     <div class="card-title">Editar colección</div>
-    <form method="post" action="{{ url_for('rag_select_collection') }}" class="row">
+    <form method="post" action="/rag/select" class="row">
         <input name="collection" list="collections" value="{{ selected_collection or default_collection }}" placeholder="Nombre de colección" />
         <button type="submit">Seleccionar</button>
     </form>
     <div class="muted">Seleccionada: <span class="mono">{{ selected_collection or default_collection }}</span> · chunks: {{ selected_count or 0 }}</div>
     <div class="actions">
-        <form method="post" action="{{ url_for('rag_clear_collection') }}" class="inline">
+        <form method="post" action="/rag/clear" class="inline">
             <input type="hidden" name="collection" value="{{ selected_collection or default_collection }}" />
             <button type="submit" class="danger">Vaciar colección</button>
         </form>
-        <form method="post" action="{{ url_for('rag_delete_chunk') }}" class="inline">
+        <form method="post" action="/rag/delete" class="inline">
             <input type="hidden" name="collection" value="{{ selected_collection or default_collection }}" />
             <input name="chunk_id" placeholder="ID de chunk" class="mono" />
             <button type="submit" class="ghost">Borrar por ID</button>

@@ -43,6 +43,14 @@
                 </div>
             </header>
             <section class="page">
+                {% if not ollama_ok %}
+                <div class="alert error">
+                    Ollama no está accesible en <code>{{ ollama_base_url }}</code>: {{ ollama_error }}
+                    {% if ollama_models %}
+                    <div class="muted small">Modelos instalados: {{ ollama_models|join(', ') }}</div>
+                    {% endif %}
+                </div>
+                {% endif %}
                 {% block content %}{% endblock %}
             </section>
         </main>

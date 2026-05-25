@@ -12,7 +12,7 @@ import db
 import rag_engine
 import saas_backend
 from agentic_mission import run_agent
-from ollama_api import OllamaError, chat, force_json
+from ollama_api import OllamaError, chat, force_json, health
 
 
 app = Flask(__name__)
@@ -218,7 +218,7 @@ def rag_ask(collection: str, question: str, k: int) -> Tuple[int, Dict[str, Any]
     )
     user = f"Pregunta: {question}\n\nContexto:\n{context}"
     try:
-        rag_model = os.getenv("OLLAMA_RAG_MODEL", "faighting:latest")
+        rag_model = os.getenv("OLLAMA_RAG_MODEL", "qwen2.5:3b-instruct")
         answer = chat(
             [{"role": "system", "content": system}, {"role": "user", "content": user}],
             model=rag_model,
@@ -240,14 +240,19 @@ def _template_ctx(active: str) -> Dict[str, Any]:
     default = _default_collection()
     if default and default not in collections:
         collections = [default] + collections
+    h = health()
     return {
         "active": active,
         "user": _current_user(),
         "default_collection": default,
         "collections": collections,
-        "chat_model": os.getenv("OLLAMA_CHAT_MODEL", "faighting:latest"),
+        "chat_model": os.getenv("OLLAMA_CHAT_MODEL", "qwen2.5:3b-instruct"),
         "embed_model": os.getenv("OLLAMA_EMBED_MODEL", "phi3:mini"),
         "tuned_model": os.getenv("OLLAMA_TUNED_MODEL", "ceacfp-tuned"),
+        "ollama_ok": bool(h.get("ok")),
+        "ollama_base_url": str(h.get("base_url") or ""),
+        "ollama_error": h.get("error"),
+        "ollama_models": list(h.get("models") or [])[:12],
     }
 
 
@@ -512,7 +517,7 @@ def training_run():
             cwd=os.getcwd(),
             capture_output=True,
             text=True,
-            timeout=180,
+            timeout=600,
         )
         output = (p.stdout or "") + ("\n" + p.stderr if p.stderr else "")
         status = int(p.returncode or 0)
@@ -602,7 +607,7 @@ def coach_post():
             "Si la pregunta es de salud/lesiones, recomienda consultar a un profesional y prioriza la seguridad.\n"
         )
         tuned = os.getenv("OLLAMA_TUNED_MODEL", "ceacfp-tuned")
-        base = os.getenv("OLLAMA_CHAT_MODEL", "faighting:latest")
+        base = os.getenv("OLLAMA_CHAT_MODEL", "qwen2.5:3b-instruct")
         try:
             model_used = tuned
             answer = chat(
@@ -854,15 +859,5 @@ bootstrap()
 
 if __name__ == "__main__":
     host = os.getenv("HOST", "127.0.0.1")
-    base_port = int(os.getenv("PORT", "5000"))
-    port = base_port
-    for _ in range(20):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.2)
-            in_use = s.connect_ex((host, port)) == 0
-        if not in_use:
-            break
-        port += 1
-    if port != base_port:
-        print(f"Puerto {base_port} ocupado. Usando {port}.")
+    port = int(os.getenv("PORT", "5001"))
     app.run(host=host, port=port, debug=True, use_reloader=False)

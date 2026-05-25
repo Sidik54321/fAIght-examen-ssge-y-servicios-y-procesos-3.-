@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -9,8 +10,14 @@ class OllamaError(RuntimeError):
     pass
 
 
+_HEALTH_CACHE: Dict[str, Any] = {"ts": 0.0, "value": None}
+
+
 def _base_url() -> str:
-    return os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
+    raw = os.getenv("OLLAMA_BASE_URL")
+    if not raw or not raw.strip():
+        raw = "http://localhost:11434"
+    return raw.rstrip("/")
 
 
 def _list_models() -> List[str]:
@@ -71,6 +78,50 @@ def _suggest_models_text() -> str:
     shown = ", ".join(models[:12])
     more = "" if len(models) <= 12 else f" (+{len(models) - 12} más)"
     return f"Modelos instalados: {shown}{more}"
+
+
+def health(*, max_age_s: int = 5) -> Dict[str, Any]:
+    now = time.monotonic()
+    cached_ts = float(_HEALTH_CACHE.get("ts") or 0.0)
+    cached_val = _HEALTH_CACHE.get("value")
+    if isinstance(cached_val, dict) and (now - cached_ts) <= float(max_age_s):
+        return cached_val
+
+    url = f"{_base_url()}/api/tags"
+    try:
+        r = requests.get(url, timeout=2)
+    except requests.RequestException as e:
+        val = {"ok": False, "base_url": _base_url(), "error": str(e), "models": []}
+        _HEALTH_CACHE["ts"] = now
+        _HEALTH_CACHE["value"] = val
+        return val
+
+    if r.status_code >= 400:
+        val = {"ok": False, "base_url": _base_url(), "error": f"HTTP {r.status_code}: {r.text}", "models": []}
+        _HEALTH_CACHE["ts"] = now
+        _HEALTH_CACHE["value"] = val
+        return val
+
+    try:
+        data = r.json()
+    except Exception as e:
+        val = {"ok": False, "base_url": _base_url(), "error": f"JSON inválido: {e}", "models": []}
+        _HEALTH_CACHE["ts"] = now
+        _HEALTH_CACHE["value"] = val
+        return val
+
+    models_raw = data.get("models")
+    models: List[str] = []
+    if isinstance(models_raw, list):
+        for m in models_raw:
+            if isinstance(m, dict) and isinstance(m.get("name"), str):
+                models.append(m["name"])
+
+    val = {"ok": True, "base_url": _base_url(), "error": None, "models": models}
+    _HEALTH_CACHE["ts"] = now
+    _HEALTH_CACHE["value"] = val
+    return val
+
 
 
 def chat(

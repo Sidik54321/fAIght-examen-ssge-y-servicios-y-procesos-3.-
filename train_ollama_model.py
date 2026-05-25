@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def main() -> int:
-    base_model = os.getenv("OLLAMA_CHAT_MODEL", "faighting:latest")
+    base_model = os.getenv("OLLAMA_CHAT_MODEL", "qwen2.5:3b-instruct")
     new_model = os.getenv("OLLAMA_TUNED_MODEL", "ceacfp-tuned")
     data_path = Path(os.getenv("TRAINING_DATA", "training_data.json"))
     modelfile_path = Path(os.getenv("MODELFILE_OUT", "Modelfile.ceacfp"))
