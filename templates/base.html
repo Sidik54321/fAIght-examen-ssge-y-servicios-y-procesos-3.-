@@ -49,6 +49,7 @@
                     {% if ollama_models %}
                     <div class="muted small">Modelos instalados: {{ ollama_models|join(', ') }}</div>
                     {% endif %}
+                    <div class="muted small">Proxy en este servidor: <code>/api/ollama</code> (ej: <code>/api/ollama/api/tags</code>)</div>
                 </div>
                 {% endif %}
                 {% block content %}{% endblock %}

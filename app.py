@@ -5,6 +5,7 @@ import socket
 import subprocess
 from typing import Any, Dict, Optional, Tuple
 
+import requests
 from flask import Flask, has_request_context, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -97,6 +98,10 @@ def guard():
     path = request.path or "/"
     if path.startswith("/static/"):
         return None
+    if path == "/ollama" or path.startswith("/ollama/"):
+        return None
+    if path.startswith("/api/ollama/"):
+        return None
     if path in {"/login", "/register"}:
         return None
     if path.startswith("/api/"):
@@ -106,6 +111,52 @@ def guard():
     if _current_user():
         return None
     return redirect(url_for("login", next=path))
+
+
+def _ollama_proxy_target() -> str:
+    raw = os.getenv("OLLAMA_PROXY_TARGET") or os.getenv("OLLAMA_BASE_URL") or "http://localhost:11434"
+    target = (raw or "").strip() or "http://localhost:11434"
+    target = target.rstrip("/")
+    if target.endswith("/ollama"):
+        target = target[: -len("/ollama")].rstrip("/")
+    if target.startswith("http://127.0.0.1:5001") or target.startswith("http://localhost:5001"):
+        target = "http://localhost:11434"
+    return target
+
+
+@app.route("/ollama/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+def ollama_proxy(subpath: str):
+    target = _ollama_proxy_target()
+    url = f"{target}/{subpath.lstrip('/')}"
+    headers = {}
+    for k, v in request.headers.items():
+        lk = k.lower()
+        if lk in {"host", "content-length", "connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade"}:
+            continue
+        headers[k] = v
+    try:
+        r = requests.request(
+            method=request.method,
+            url=url,
+            params=request.args,
+            data=request.get_data(),
+            headers=headers,
+            timeout=int(os.getenv("OLLAMA_PROXY_TIMEOUT", "120")),
+        )
+    except requests.RequestException as e:
+        return jsonify({"error": f"Proxy Ollama falló hacia {target}: {e}"}), 502
+    resp_headers = {}
+    for k, v in r.headers.items():
+        lk = k.lower()
+        if lk in {"content-length", "connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade"}:
+            continue
+        resp_headers[k] = v
+    return (r.content, int(r.status_code), resp_headers)
+
+
+@app.route("/api/ollama/<path:subpath>", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+def api_ollama_proxy(subpath: str):
+    return ollama_proxy(subpath)
 
 
 def _seed_admin_if_empty() -> None:
@@ -608,14 +659,17 @@ def coach_post():
         )
         tuned = os.getenv("OLLAMA_TUNED_MODEL", "ceacfp-tuned")
         base = os.getenv("OLLAMA_CHAT_MODEL", "qwen2.5:3b-instruct")
+        coach_primary = os.getenv("OLLAMA_COACH_MODEL") or tuned
+        coach_num_ctx = int(os.getenv("OLLAMA_COACH_NUM_CTX", "1024"))
+        coach_num_predict = int(os.getenv("OLLAMA_COACH_NUM_PREDICT", "160"))
         try:
-            model_used = tuned
+            model_used = coach_primary
             answer = chat(
                 [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-                model=tuned,
+                model=coach_primary,
                 temperature=0.3,
-                num_ctx=2048,
-                num_predict=256,
+                num_ctx=coach_num_ctx,
+                num_predict=coach_num_predict,
             ).strip()
         except Exception:
             try:
@@ -624,13 +678,23 @@ def coach_post():
                     [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
                     model=base,
                     temperature=0.3,
-                    num_ctx=2048,
-                    num_predict=256,
+                    num_ctx=coach_num_ctx,
+                    num_predict=coach_num_predict,
                 ).strip()
             except Exception as e:
                 error = str(e)
                 model_used = None
                 answer = ""
+        if answer:
+            try:
+                exists = db.fetch_one("SELECT 1 FROM training_pairs WHERE question = ? LIMIT 1", (prompt,))
+                if not exists:
+                    db.execute(
+                        "INSERT INTO training_pairs (question, answer, created_at) VALUES (?, ?, ?)",
+                        (prompt, answer, db.now_iso()),
+                    )
+            except Exception:
+                pass
 
     return render_template(
         "coach.html",
