@@ -124,6 +124,24 @@ def health(*, max_age_s: int = 5) -> Dict[str, Any]:
 
 
 
+def warmup(model: Optional[str] = None) -> bool:
+    """Envía un ping mínimo para pre-cargar el modelo en memoria."""
+    model_name = model or os.getenv("OLLAMA_CHAT_MODEL", "qwen2.5:3b-instruct")
+    url = f"{_base_url()}/api/chat"
+    payload = {
+        "model": model_name,
+        "messages": [{"role": "user", "content": "hola"}],
+        "stream": False,
+        "keep_alive": -1,
+        "options": {"num_ctx": 512, "num_predict": 1, "temperature": 0.0},
+    }
+    try:
+        requests.post(url, json=payload, timeout=60)
+        return True
+    except Exception:
+        return False
+
+
 def chat(
     messages: List[Dict[str, str]],
     *,
@@ -133,13 +151,14 @@ def chat(
     num_predict: Optional[int] = None,
 ) -> str:
     model_name = model or os.getenv("OLLAMA_CHAT_MODEL", "qwen2.5:3b-instruct")
-    num_ctx = int(num_ctx if num_ctx is not None else os.getenv("OLLAMA_NUM_CTX", "2048"))
-    num_predict = int(num_predict if num_predict is not None else os.getenv("OLLAMA_NUM_PREDICT", "256"))
+    num_ctx = int(num_ctx if num_ctx is not None else os.getenv("OLLAMA_NUM_CTX", "1024"))
+    num_predict = int(num_predict if num_predict is not None else os.getenv("OLLAMA_NUM_PREDICT", "150"))
     url = f"{_base_url()}/api/chat"
     payload = {
         "model": model_name,
         "messages": messages,
         "stream": False,
+        "keep_alive": -1,
         "options": {"temperature": temperature, "num_ctx": num_ctx, "num_predict": num_predict},
     }
     try:
@@ -173,7 +192,7 @@ def chat(
 
 def _try_embed_batch(texts: List[str], model_name: str) -> Optional[List[List[float]]]:
     url = f"{_base_url()}/api/embed"
-    payload = {"model": model_name, "input": texts}
+    payload = {"model": model_name, "input": texts, "keep_alive": -1}
     try:
         r = requests.post(url, json=payload, timeout=int(os.getenv("OLLAMA_EMBED_TIMEOUT", "90")))
     except requests.RequestException:
@@ -262,6 +281,8 @@ def force_json(system: str, user: str) -> Dict[str, Any]:
             {"role": "user", "content": user},
         ],
         temperature=0.0,
+        num_ctx=512,
+        num_predict=80,
     )
     try:
         return json.loads(content)

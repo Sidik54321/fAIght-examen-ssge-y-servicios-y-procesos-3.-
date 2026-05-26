@@ -8,7 +8,7 @@
 </datalist>
 <div class="grid2">
     <div class="card">
-        <div class="card-title">Ingestar texto (entrenar tu RAG)</div>
+        <div class="card-title">Ingestar texto</div>
         <form method="post" action="/rag/ingest" class="stack">
             <label>
                 Colección
@@ -20,7 +20,7 @@
             </label>
             <label>
                 Texto
-                <textarea name="text" rows="8" placeholder="Pega tus apuntes de boxeo: guardia, jab, cross, defensa..."></textarea>
+                <textarea name="text" rows="5" placeholder="Pega tus apuntes aquí…"></textarea>
             </label>
             <button type="submit">Ingestar</button>
         </form>
@@ -28,13 +28,13 @@
         {% if ingest.error %}
         <div class="alert error">{{ ingest.error }}</div>
         {% else %}
-        <div class="alert ok">Chunks añadidos: {{ ingest.added }} · colección: {{ ingest.collection }}</div>
+        <div class="alert ok">✓ {{ ingest.added }} chunks · <span class="mono">{{ ingest.collection }}</span></div>
         {% endif %}
         {% endif %}
     </div>
 
     <div class="card">
-        <div class="card-title">Preguntar (RAG + IA)</div>
+        <div class="card-title">Preguntar al RAG</div>
         <form method="post" action="/rag/ask" class="stack">
             <label>
                 Colección
@@ -51,46 +51,62 @@
 
 <div class="card">
     <div class="card-title">Editar colección</div>
-    <form method="post" action="/rag/select" class="row">
+    <form method="post" action="/rag/select" class="row" style="margin-bottom:.5rem">
         <input name="collection" list="collections" value="{{ selected_collection or default_collection }}" placeholder="Nombre de colección" />
         <button type="submit">Seleccionar</button>
     </form>
-    <div class="muted">Seleccionada: <span class="mono">{{ selected_collection or default_collection }}</span> · chunks: {{ selected_count or 0 }}</div>
-    <div class="actions">
+    <div class="muted" style="margin-bottom:.75rem">
+        <span class="mono">{{ selected_collection or default_collection }}</span>
+        &nbsp;·&nbsp; {{ selected_count or 0 }} chunks
+    </div>
+    <div class="actions" style="margin-bottom:.75rem">
         <form method="post" action="/rag/clear" class="inline">
             <input type="hidden" name="collection" value="{{ selected_collection or default_collection }}" />
             <button type="submit" class="danger">Vaciar colección</button>
         </form>
         <form method="post" action="/rag/delete" class="inline">
             <input type="hidden" name="collection" value="{{ selected_collection or default_collection }}" />
-            <input name="chunk_id" placeholder="ID de chunk" class="mono" />
+            <input name="chunk_id" placeholder="ID de chunk" class="mono" style="width:10rem" />
             <button type="submit" class="ghost">Borrar por ID</button>
         </form>
     </div>
     {% if selected_preview %}
-    <div class="card-subtitle">Vista previa</div>
-    <pre>{{ selected_preview | tojson(indent=2) }}</pre>
+    <details>
+        <summary class="muted small" style="cursor:pointer;user-select:none">Vista previa ({{ selected_preview | length }} chunks)</summary>
+        <pre style="max-height:240px;overflow-y:auto;margin-top:.5rem;font-size:.78rem">{% for chunk in selected_preview %}<b>#{{ loop.index }}</b> {{ chunk.id if chunk.id is defined else '' }}
+{{ chunk.text[:200] if chunk.text is defined else chunk | string | truncate(200) }}
+{% endfor %}</pre>
+    </details>
     {% else %}
-    <div class="muted">Sin chunks para mostrar.</div>
+    <div class="muted small">Sin chunks para mostrar.</div>
     {% endif %}
 </div>
 
 {% if ask %}
-<div class="card">
-    <div class="card-title">Chunks más similares</div>
-    {% if ask.error %}
-    <div class="alert error">{{ ask.error }}</div>
-    {% else %}
-    <pre>{{ ask.chunks | tojson(indent=2) }}</pre>
-    {% endif %}
-</div>
-<div class="card">
-    <div class="card-title">Respuesta final</div>
-    {% if ask.answer %}
-    <div class="answer">{{ ask.answer }}</div>
-    {% else %}
-    <div class="muted">Sin respuesta.</div>
-    {% endif %}
+<div class="grid2">
+    <div class="card">
+        <div class="card-title">Chunks similares</div>
+        {% if ask.error %}
+        <div class="alert error">{{ ask.error }}</div>
+        {% else %}
+        <div style="display:flex;flex-direction:column;gap:.5rem">
+        {% for chunk in ask.chunks %}
+        <div style="background:var(--bg2,#1a1a1a);border-radius:6px;padding:.5rem .75rem;font-size:.82rem">
+            <div class="muted small mono" style="margin-bottom:.2rem">{{ chunk.id if chunk.id is defined else loop.index }}</div>
+            <div>{{ chunk.text[:180] if chunk.text is defined else chunk | string | truncate(180) }}</div>
+        </div>
+        {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="card">
+        <div class="card-title">Respuesta</div>
+        {% if ask.answer %}
+        <div class="answer">{{ ask.answer }}</div>
+        {% else %}
+        <div class="muted">Sin respuesta.</div>
+        {% endif %}
+    </div>
 </div>
 {% endif %}
 {% endblock %}

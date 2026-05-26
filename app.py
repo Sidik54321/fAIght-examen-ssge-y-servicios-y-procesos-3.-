@@ -1,7 +1,6 @@
 import json
 import os
 import random
-import socket
 import subprocess
 from typing import Any, Dict, Optional, Tuple
 
@@ -13,7 +12,8 @@ import db
 import rag_engine
 import saas_backend
 from agentic_mission import run_agent
-from ollama_api import OllamaError, chat, force_json, health
+import ollama_api
+from ollama_api import OllamaError, chat, force_json, health, warmup
 
 
 app = Flask(__name__)
@@ -215,6 +215,8 @@ def run_mcp(question: str) -> Tuple[int, Dict[str, Any]]:
         answer = chat(
             [{"role": "system", "content": interpret_system}, {"role": "user", "content": interpret_user}],
             temperature=0.2,
+            num_ctx=1024,
+            num_predict=150,
         ).strip()
     except OllamaError as e:
         return 502, {"error": str(e), "tool_call": tool_call, "saas": service_data}
@@ -235,9 +237,9 @@ def rag_ingest(collection: str, text: str, source: str) -> Tuple[int, Dict[str, 
         if "dimension" in msg.lower() or "embedding" in msg.lower():
             embed_model = os.getenv("OLLAMA_EMBED_MODEL", "phi3:mini")
             return 400, {"error": f"Incompatibilidad de embeddings en la colección. Usa siempre el mismo modelo de embeddings (OLLAMA_EMBED_MODEL={embed_model}) o reinicia la base de Chroma (carpeta chroma_db). Detalle: {msg}"}
+        if isinstance(e, OllamaError):
+            return 502, {"error": str(e)}
         return 500, {"error": f"Error ingesta: {msg}"}
-    except OllamaError as e:
-        return 502, {"error": str(e)}
     return 200, {"collection": collection, **result}
 
 
@@ -254,9 +256,9 @@ def rag_ask(collection: str, question: str, k: int) -> Tuple[int, Dict[str, Any]
         if "dimension" in msg.lower() or "embedding" in msg.lower():
             embed_model = os.getenv("OLLAMA_EMBED_MODEL", "phi3:mini")
             return 400, {"error": f"Incompatibilidad de embeddings en la colección. Usa siempre el mismo modelo de embeddings (OLLAMA_EMBED_MODEL={embed_model}) o reinicia la base de Chroma (carpeta chroma_db). Detalle: {msg}"}
+        if isinstance(e, OllamaError):
+            return 502, {"error": str(e)}
         return 500, {"error": f"Error RAG: {msg}"}
-    except OllamaError as e:
-        return 502, {"error": str(e)}
 
     context = "\n\n".join([f"[Chunk {i+1}]\n{(c['chunk'] or '')[:280]}" for i, c in enumerate(chunks)])
     if not chunks:
@@ -297,7 +299,7 @@ def _template_ctx(active: str) -> Dict[str, Any]:
         "user": _current_user(),
         "default_collection": default,
         "collections": collections,
-        "chat_model": os.getenv("OLLAMA_CHAT_MODEL", "qwen2.5:3b-instruct"),
+        "chat_model": os.getenv("OLLAMA_CHAT_MODEL", "ceacfp-tuned"),
         "embed_model": os.getenv("OLLAMA_EMBED_MODEL", "phi3:mini"),
         "tuned_model": os.getenv("OLLAMA_TUNED_MODEL", "ceacfp-tuned"),
         "ollama_ok": bool(h.get("ok")),
@@ -876,6 +878,8 @@ def api_fight():
                 },
             ],
             temperature=0.4,
+            num_ctx=512,
+            num_predict=120,
         ).strip()
         if commentary:
             log.append("")
@@ -912,10 +916,29 @@ def bootstrap() -> None:
     _seed_admin_if_empty()
     db.seed_boxers_if_empty()
     db.seed_training_pairs_minimum()
+    # Pre-carga los modelos en memoria para que la primera consulta sea rápida
     try:
-        rag_engine.ensure_seeded(_default_collection(), BOXING_KNOWLEDGE_SEED)
+        warmup()
     except Exception:
         pass
+    # Carga el modelo de embeddings también
+    try:
+        embed_model = os.getenv("OLLAMA_EMBED_MODEL", "phi3:mini")
+        ollama_api.warmup(embed_model)
+    except Exception:
+        pass
+    # Siembra la colección RAG por defecto con conocimiento de boxeo
+    default_col = _default_collection()
+    try:
+        rag_engine.ensure_seeded(default_col, BOXING_KNOWLEDGE_SEED)
+    except Exception:
+        # Si falla el primer intento (modelo aún cargando), reintenta una vez
+        try:
+            import time as _time
+            _time.sleep(3)
+            rag_engine.ensure_seeded(default_col, BOXING_KNOWLEDGE_SEED)
+        except Exception:
+            pass
 
 
 bootstrap()
