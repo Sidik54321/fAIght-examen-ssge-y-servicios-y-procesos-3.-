@@ -278,6 +278,34 @@ select {
         6px 6px;
     background-repeat: no-repeat;
     padding-right: 34px;
+    cursor: pointer;
+}
+
+select:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.035);
+}
+
+select option,
+select optgroup {
+    background: #0b0b0b;
+    color: var(--text);
+}
+
+.selector {
+    border-radius: 14px;
+    background:
+        radial-gradient(700px 220px at 20% -20%, rgba(255, 255, 255, 0.08), transparent 55%),
+        rgba(255, 255, 255, 0.02);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+    font-weight: 650;
+    letter-spacing: 0.1px;
+}
+
+.selector:focus {
+    border-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18), 0 18px 50px rgba(0, 0, 0, 0.65);
 }
 
 button:hover {
